@@ -36,16 +36,24 @@ function authenticateToken(req, res, next) {
 // -------------------
 // User Registration
 // -------------------
-app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
+app.post('/register', async function(req, res) {
+  const username = req.body.username;
+  const password = req.body.password;
+
   if (!username || !password) return res.send('Username & password required');
 
-  const exists = await db('users').where({ username }).first();
-  if (exists) return res.send('Username already exists');
+  try {
+    const existing = await db('users').where({ username }).first();
+    if (existing) return res.send('Username already exists');
 
-  await db('users').insert({ username, password });
-  res.send('Registration successful. <a href="/login.html">Login</a>');
+    await db('users').insert({ username: username, password: password });
+    res.send('Registration successful. <a href="/login">Login</a>');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error: ' + err.message);
+  }
 });
+
 
 // -------------------
 // User Login
