@@ -1,13 +1,18 @@
 <h2>Items</h2>
 <form action="/items" method="post">
   <input name="name" placeholder="Item name" required>
-  <input type="hidden" name="token" value="new URLSearchParams(location.search).get('token')">
+  <input type="hidden" name="token" id="tokenField">
   <button type="submit">Add Item</button>
 </form>
 <hr>
 <div id="itemList"></div>
 
 <script>
+// 
+var token = new URLSearchParams(location.search).get('token');
+// 
+document.getElementById('tokenField').value = token;
+//
 async function loadItems() {
   const token = new URLSearchParams(location.search).get('token');
   const res = await fetch(`/items/list?token=${token}`);
