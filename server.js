@@ -32,6 +32,17 @@ function authenticateToken(req, res, next) {
   });
 }
 
+app.get('/login', function(req, res) {
+  res.sendFile(path.join(__dirname, 'views', 'login.html'));
+});
+
+app.get('/register', function(req, res) {
+  res.sendFile(path.join(__dirname, 'views', 'register.html'));
+});
+
+app.get('/items', function(req, res) {
+  res.sendFile(path.join(__dirname, 'views', 'items.html'));
+});
 
 // -------------------
 // User Registration
