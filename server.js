@@ -21,11 +21,13 @@ app.use(express.static(path.join(__dirname, 'views')));
 // -------------------
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
+  
+  // Check header, query param, or POST form body
+  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token || req.body.token;
 
   if (!token) return res.status(401).send('Token missing');
 
-  jwt.verify(token, SECRET_KEY, (err, user) => {
+  jwt.verify(token, SECRET_KEY, function(err, user) {
     if (err) return res.status(403).send('Invalid token');
     req.user = user;
     next();
