@@ -1,0 +1,32 @@
+<h2>Items</h2>
+<form action="/items" method="post">
+  <input name="name" placeholder="Item name" required>
+  <input type="hidden" name="token" value="<script>document.write(new URLSearchParams(location.search).get('token'))</script>">
+  <button type="submit">Add Item</button>
+</form>
+<hr>
+<div id="itemList"></div>
+
+<script>
+async function loadItems() {
+  const token = new URLSearchParams(location.search).get('token');
+  const res = await fetch(`/items/list?token=${token}`);
+  const items = await res.json();
+  const div = document.getElementById('itemList');
+  div.innerHTML = items.map(i => `
+    <form style="margin-bottom:5px;" action="/items/update" method="post">
+      <input name="id" type="hidden" value="${i.id}">
+      <input name="name" value="${i.name}">
+      <input type="hidden" name="token" value="${token}">
+      <button type="submit">Update</button>
+    </form>
+    <form action="/items/delete" method="post">
+      <input type="hidden" name="id" value="${i.id}">
+      <input type="hidden" name="token" value="${token}">
+      <button type="submit">Delete</button>
+    </form>
+    <hr>
+  `).join('');
+}
+loadItems();
+</script>
