@@ -20,7 +20,9 @@ app.use(express.static(path.join(__dirname, 'views')));
 // JWT Middleware
 // -------------------
 function authenticateToken(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1] || req.query.token;
+  const authHeader = req.headers['authorization'];
+  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
+
   if (!token) return res.status(401).send('Token missing');
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
@@ -29,6 +31,7 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
+
 
 // -------------------
 // User Registration
