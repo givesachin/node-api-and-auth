@@ -93,4 +93,7 @@ app.post('/items/delete', authenticateToken, async (req, res) => {
 // -------------------
 // Start Server
 // -------------------
-app.listen(PORT, '0.0.0.0
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+
