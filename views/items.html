@@ -1,7 +1,7 @@
 <h2>Items</h2>
 <form action="/items" method="post">
   <input name="name" placeholder="Item name" required>
-  <input type="hidden" name="token" value="document.write(new URLSearchParams(location.search).get('token'))">
+  <input type="hidden" name="token" value="new URLSearchParams(location.search).get('token')">
   <button type="submit">Add Item</button>
 </form>
 <hr>
