@@ -1,9 +1,9 @@
+
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 36535;
@@ -22,72 +22,42 @@ app.use(express.static(path.join(__dirname, 'views')));
 function authenticateToken(req, res, next) {
   let token = null;
 
-  // 1️⃣ Check Authorization header (Bearer <token>)
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
   }
+  if (!token && req.query.token) token = req.query.token;
+  if (!token && req.body.token) token = req.body.token;
 
-  // 2️⃣ If not in header, check query (?token=...)
-  if (!token && req.query.token) {
-    token = req.query.token;
-  }
+  if (!token) return res.status(401).json({ success: false, error: 'Token missing' });
 
-  // 3️⃣ If still not found, check POST body (for form/json submissions)
-  if (!token && req.body.token) {
-    token = req.body.token;
-  }
-
-  // 4️⃣ Handle missing token
-  if (!token) {
-    return res.status(401).json({ error: 'Token missing' });
-  }
-
-  // 5️⃣ Verify token
   jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
-    }
+    if (err) return res.status(403).json({ success: false, error: 'Invalid or expired token' });
     req.user = user;
     next();
   });
 }
 
-
-// Routes
-app.get('/login', function(req, res) {
-  res.sendFile(path.join(__dirname, 'views', 'login.html'));
-});
-
-app.get('/register', function(req, res) {
-  res.sendFile(path.join(__dirname, 'views', 'register.html'));
-});
-
-app.get('/items', function(req, res) {
-  res.sendFile(path.join(__dirname, 'views', 'items.html'));
-});
-
 // -------------------
 // User Registration
 // -------------------
-app.post('/register', async function(req, res) {
-  const username = req.body.username;
-  const password = req.body.password;
+app.post('/register', async (req, res) => {
+  const { username, password } = req.body;
 
-  if (!username || !password) return res.send('Username & password required');
+  if (!username || !password)
+    return res.status(400).json({ success: false, error: 'Username & password required' });
 
   try {
     const existing = await db('users').where({ username }).first();
-    if (existing) return res.send('Username already exists');
+    if (existing) return res.status(409).json({ success: false, error: 'Username already exists' });
 
-    await db('users').insert({ username: username, password: password });
-    res.send('Registration successful. <a href="/login">Login</a>');
+    await db('users').insert({ username, password });
+    res.json({ success: true, message: 'Registration successful' });
   } catch (err) {
     console.error(err);
-    res.status(500).send('Database error: ' + err.message);
+    res.status(500).json({ success: false, error: 'Database error: ' + err.message });
   }
 });
-
 
 // -------------------
 // User Login
@@ -95,10 +65,11 @@ app.post('/register', async function(req, res) {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = await db('users').where({ username, password }).first();
-  if (!user) return res.send('Invalid credentials');
+
+  if (!user) return res.status(401).json({ success: false, error: 'Invalid credentials' });
 
   const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '1h' });
-  res.send(`Login successful! Your token:<br><input style="width:500px;" value="${token}" readonly><br><a href="/items.html?token=${token}">Go to Items</a>`);
+  res.json({ success: true, message: 'Login successful', token });
 });
 
 // -------------------
@@ -108,28 +79,50 @@ app.post('/login', async (req, res) => {
 // Create
 app.post('/items', authenticateToken, async (req, res) => {
   const { name } = req.body;
-  await db('items').insert({ name });
-  res.redirect(`/items.html?token=${req.query.token || req.body.token}`);
+  if (!name) return res.status(400).json({ success: false, error: 'Item name required' });
+
+  try {
+    const [id] = await db('items').insert({ name });
+    res.json({ success: true, message: 'Item created', item: { id, name } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Read all
 app.get('/items/list', authenticateToken, async (req, res) => {
-  const items = await db('items').select('*');
-  res.json(items);
+  try {
+    const items = await db('items').select('*');
+    res.json({ success: true, items });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Update
 app.post('/items/update', authenticateToken, async (req, res) => {
   const { id, name } = req.body;
-  await db('items').where({ id }).update({ name });
-  res.redirect(`/items.html?token=${req.body.token}`);
+  if (!id || !name) return res.status(400).json({ success: false, error: 'ID and name required' });
+
+  try {
+    await db('items').where({ id }).update({ name });
+    res.json({ success: true, message: 'Item updated', item: { id, name } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Delete
 app.post('/items/delete', authenticateToken, async (req, res) => {
   const { id } = req.body;
-  await db('items').where({ id }).del();
-  res.redirect(`/items.html?token=${req.body.token}`);
+  if (!id) return res.status(400).json({ success: false, error: 'ID required' });
+
+  try {
+    await db('items').where({ id }).del();
+    res.json({ success: true, message: 'Item deleted', itemId: id });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // -------------------
@@ -138,4 +131,3 @@ app.post('/items/delete', authenticateToken, async (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
