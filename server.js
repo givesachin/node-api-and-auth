@@ -4,6 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 36535;
