@@ -39,6 +39,11 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Redirect root to /tester.html
+app.get('/', (req, res) => {
+  res.redirect('/tester.html');
+});
+
 // -------------------
 // User Registration
 // -------------------
