@@ -20,19 +20,39 @@ app.use(express.static(path.join(__dirname, 'views')));
 // JWT Middleware
 // -------------------
 function authenticateToken(req, res, next) {
+  let token = null;
+
+  // 1️⃣ Check Authorization header (Bearer <token>)
   const authHeader = req.headers['authorization'];
-  
-  // Check header, query param, or POST form body
-  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token || req.body.token;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  }
 
-  if (!token) return res.status(401).send('Token missing');
+  // 2️⃣ If not in header, check query (?token=...)
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
-  jwt.verify(token, SECRET_KEY, function(err, user) {
-    if (err) return res.status(403).send('Invalid token');
+  // 3️⃣ If still not found, check POST body (for form/json submissions)
+  if (!token && req.body.token) {
+    token = req.body.token;
+  }
+
+  // 4️⃣ Handle missing token
+  if (!token) {
+    return res.status(401).json({ error: 'Token missing' });
+  }
+
+  // 5️⃣ Verify token
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
     req.user = user;
     next();
   });
 }
+
 
 // Routes
 app.get('/login', function(req, res) {
